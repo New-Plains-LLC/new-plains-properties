@@ -1,36 +1,78 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { ArrowRight, MapPin, Home } from "lucide-react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, CheckCircle2, Home, MapPin } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
-export default function Hero() {
+const FALLBACK_IMAGE =
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2832&q=80";
+const SLIDE_MS = 7000;
+
+// Alternate pan directions so consecutive slides don't drift the same way.
+const PANS = [
+    { from: { scale: 1, x: "0%", y: "0%" }, to: { scale: 1.12, x: "-2%", y: "-1%" } },
+    { from: { scale: 1.12, x: "2%", y: "0%" }, to: { scale: 1, x: "0%", y: "1%" } },
+    { from: { scale: 1, x: "0%", y: "1%" }, to: { scale: 1.12, x: "2%", y: "-1%" } },
+];
+
+export default function Hero({ images }: { images: string[] }) {
+    const router = useRouter();
+    const reduceMotion = useReducedMotion();
+    const slides = images.length > 0 ? images : [FALLBACK_IMAGE];
+    const [index, setIndex] = useState(0);
+    const [address, setAddress] = useState("");
+
+    useEffect(() => {
+        if (slides.length < 2 || reduceMotion) return;
+        const id = setInterval(() => setIndex((i) => (i + 1) % slides.length), SLIDE_MS);
+        return () => clearInterval(id);
+    }, [slides.length, reduceMotion]);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        const path = submitter?.value === "land" ? "/sell-land" : "/sell-property";
+        const trimmed = address.trim();
+        router.push(trimmed ? `${path}?address=${encodeURIComponent(trimmed)}` : path);
+    };
+
+    const pan = PANS[index % PANS.length];
+
     return (
-        <div className="relative h-[90vh] min-h-[600px] w-full overflow-hidden flex items-center justify-center">
-            {/* Background with Ken Burns Effect */}
-            <motion.div
-                className="absolute inset-0 z-0 origin-center"
-                initial={{ scale: 1 }}
-                animate={{ scale: 1.15 }}
-                transition={{
-                    duration: 20,
-                    repeat: Infinity,
-                    repeatType: "reverse",
-                    ease: "linear",
-                }}
-            >
-                <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{
-                        backgroundImage: "url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=2832&q=80')",
-                    }}
-                />
-                {/* Color overlay to ensure text readability */}
-                <div className="absolute inset-0 bg-black/50" />
-            </motion.div>
+        <section className="relative min-h-[92vh] w-full overflow-hidden flex items-center justify-center py-20">
+            <div className="absolute inset-0 z-0">
+                <AnimatePresence initial={false}>
+                    <motion.div
+                        key={slides[index]}
+                        className="absolute inset-0"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                    >
+                        <motion.div
+                            className="absolute inset-0"
+                            initial={reduceMotion ? false : pan.from}
+                            animate={reduceMotion ? undefined : pan.to}
+                            transition={{ duration: (SLIDE_MS + 1500) / 1000, ease: "linear" }}
+                        >
+                            <Image
+                                src={slides[index]}
+                                alt="Aerial drone photo of land purchased by New Plains Properties"
+                                fill
+                                priority={index === 0}
+                                sizes="100vw"
+                                className="object-cover"
+                            />
+                        </motion.div>
+                    </motion.div>
+                </AnimatePresence>
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/45 to-black/70" />
+            </div>
 
-            {/* Hero Content */}
-            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white flex flex-col items-center">
+            <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white flex flex-col items-center w-full">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -51,35 +93,70 @@ export default function Hero() {
                     </p>
                 </motion.div>
 
-                {/* Dual CTA Buttons */}
-                <motion.div
+                <motion.form
+                    onSubmit={handleSubmit}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                    className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center"
+                    className="w-full max-w-4xl rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-3 md:p-4"
                 >
-                    <Link
-                        href="/sell-land"
-                        className="group relative flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-8 py-4 text-lg font-semibold text-white shadow-lg hover:bg-[var(--color-primary-dark)] transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto overflow-hidden"
-                    >
-                        <MapPin className="w-5 h-5 z-10" />
-                        <span className="z-10">Sell Your Land</span>
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform z-10" />
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
-                    </Link>
+                    <label htmlFor="hero-address" className="sr-only">
+                        Property address or parcel number
+                    </label>
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                            <input
+                                id="hero-address"
+                                type="text"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="Property address or parcel #"
+                                autoComplete="street-address"
+                                className="w-full h-full min-h-14 rounded-xl bg-white pl-12 pr-4 text-base md:text-lg text-[var(--color-secondary)] placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                            />
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                                type="submit"
+                                value="land"
+                                className="group flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-4 text-base md:text-lg font-semibold text-white hover:bg-[var(--color-primary-dark)] transition-all hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+                            >
+                                Sell Your Land
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </button>
+                            <button
+                                type="submit"
+                                value="property"
+                                className="group flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 text-base md:text-lg font-semibold text-[var(--color-secondary)] hover:bg-gray-100 transition-all hover:-translate-y-0.5 active:translate-y-0 whitespace-nowrap"
+                            >
+                                <Home className="w-5 h-5 text-[var(--color-primary)]" />
+                                Sell Your Property
+                            </button>
+                        </div>
+                    </div>
+                </motion.form>
 
-                    <Link
-                        href="/sell-property"
-                        className="group relative flex items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-semibold text-[var(--color-secondary)] shadow-lg hover:bg-gray-50 transition-all hover:-translate-y-1 hover:shadow-xl w-full sm:w-auto overflow-hidden border border-transparent"
-                    >
-                        <Home className="w-5 h-5 z-10 text-[var(--color-primary)]" />
-                        <span className="z-10">Sell Your Property</span>
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform z-10 text-[var(--color-primary)]" />
-                        <div className="absolute inset-0 bg-gray-100 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out z-0" />
-                    </Link>
-                </motion.div>
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
+                    className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-gray-200"
+                >
+                    <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
+                        Offer within 24 hours
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
+                        No obligation
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-[var(--color-primary)]" />
+                        No fees or commissions
+                    </span>
+                </motion.p>
             </div>
-
-        </div>
+        </section>
     );
 }

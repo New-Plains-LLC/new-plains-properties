@@ -5,7 +5,10 @@
   --color-primary-dark: #cc7a07;
   --color-secondary: #2d2001;
   --color-background: #ffffff;
+  --color-cream: #faf7f2;
   --color-foreground: #2d2001;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-signature: var(--font-caveat), cursive;
 }
 
 @layer base {
@@ -14,4 +17,25 @@
     color: var(--color-foreground);
     @apply antialiased;
   }
+}
+
+@keyframes ping-slow {
+  75%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-ping-slow {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: ping-slow 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
 }

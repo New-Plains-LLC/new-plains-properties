@@ -3,27 +3,35 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { ArrowRight, MapPin } from "lucide-react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { CITIES, getCity } from "@/lib/site";
+import { SITUATIONS } from "@/lib/situations";
 
 export const dynamicParams = false;
 
+type Props = { params: Promise<{ city: string }> };
+
 export async function generateStaticParams() {
-    const cities = ["chickasha", "tuttle", "amber", "pocasset", "newcastle", "mustang", "minco"];
-    return cities.map((city) => ({ city }));
+    return CITIES.map((c) => ({ city: c.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { city: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { city } = await params;
-    const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1);
+    const capitalizedCity = getCity(city)?.name ?? city;
 
     return {
         title: `Sell Your Property Fast in ${capitalizedCity}, OK | New Plains Properties`,
         description: `Looking to sell land or property in ${capitalizedCity}, OK? New Plains Properties buys as-is for cash. No realtor fees, fast closings. Local family buyers.`,
+        alternates: { canonical: `/locations/${city}` },
     };
 }
 
-export default async function LocationPage({ params }: { params: { city: string } }) {
+export default async function LocationPage({ params }: Props) {
     const { city } = await params;
-    const capitalizedCity = city.charAt(0).toUpperCase() + city.slice(1);
+    const cityData = getCity(city);
+    if (!cityData) notFound();
+    const capitalizedCity = cityData.name;
+    const nearby = CITIES.filter((c) => c.slug !== city);
 
     return (
         <div className="min-h-screen flex flex-col bg-[var(--color-background)]">
@@ -58,7 +66,7 @@ export default async function LocationPage({ params }: { params: { city: string 
                         <div className="prose prose-lg prose-[var(--color-secondary)] mx-auto">
                             <h2 className="text-3xl font-bold text-[var(--color-secondary)] mb-6">Why We Buy in {capitalizedCity}</h2>
                             <p className="text-gray-600 mb-6">
-                                As a family-owned business rooted in Oklahoma, {capitalizedCity} is an area we know well and deeply care about. Our goal isn't just to buy off-market properties; it's to improve our local communities. Whether you've inherited a house that needs too much work, or you have vacant land in {capitalizedCity} you'd like to turn into cash, we can help.
+                                As a family-owned business rooted in Oklahoma, {capitalizedCity} is an area we know well and deeply care about. Our goal isn&apos;t just to buy off-market properties; it&apos;s to improve our local communities. Whether you&apos;ve inherited a house that needs too much work, or you have vacant land in {capitalizedCity} you&apos;d like to turn into cash, we can help.
                             </p>
 
                             <ul className="space-y-4 mb-8">
@@ -75,6 +83,40 @@ export default async function LocationPage({ params }: { params: { city: string 
                                     <span className="text-gray-700"><strong>Local Experts:</strong> We understand the true value of real estate in {capitalizedCity}.</span>
                                 </li>
                             </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="pb-20 bg-white">
+                    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+                        <div>
+                            <h2 className="text-lg font-bold text-[var(--color-secondary)] mb-4">Selling in {capitalizedCity} because of...</h2>
+                            <div className="flex flex-wrap gap-3">
+                                {SITUATIONS.map((s) => (
+                                    <Link
+                                        key={s.slug}
+                                        href={`/situations/${s.slug}`}
+                                        className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors"
+                                    >
+                                        {s.shortTitle}
+                                    </Link>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-[var(--color-secondary)] mb-4">Nearby areas we also serve</h2>
+                            <div className="flex flex-wrap gap-3">
+                                {nearby.map((c) => (
+                                    <Link
+                                        key={c.slug}
+                                        href={`/locations/${c.slug}`}
+                                        className="inline-flex items-center gap-1.5 rounded-full bg-cream px-4 py-2 text-sm font-medium text-[var(--color-secondary)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-colors"
+                                    >
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        {c.name}
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </section>
